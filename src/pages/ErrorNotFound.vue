@@ -1,23 +1,41 @@
 <template>
-  <div class="fullscreen bg-blue text-white text-center q-pa-md flex flex-center">
-    <div>
-      <div style="font-size: 30vh">
-        404
+  <q-page class="flex flex-center q-pa-lg">
+    <q-card class="q-pa-lg text-center" style="max-width: 420px; width: 100%;">
+      <q-icon
+        name="error_outline"
+        color="positive"
+        size="64px"
+        class="q-mb-md"
+      />
+
+      <div class="text-h5 text-weight-bold q-mb-sm">
+        Page Not Found
       </div>
 
-      <div class="text-h2" style="opacity:.4">
-        Oops. Nothing here...
+      <div class="text-grey-7 q-mb-lg">
+        The page you’re looking for doesn’t exist or may have been moved.
       </div>
 
       <q-btn
-        class="q-mt-xl"
-        color="white"
-        text-color="blue"
+        color="primary"
+        label="Back to Dashboard"
+        icon="dashboard"
+        @click="goHome"
         unelevated
-        to="/"
-        label="Go Home"
-        no-caps
+        class="full-width"
       />
-    </div>
-  </div>
+    </q-card>
+  </q-page>
 </template>
+
+<script setup lang="ts">
+import { useRouter } from 'vue-router'
+
+const router = useRouter()
+
+
+async function goHome () {
+  await router.replace('/dashboard')
+}
+
+</script>

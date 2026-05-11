@@ -12,10 +12,21 @@
         />
 
         <q-toolbar-title>
-          Quasar App
+          DENDROTONICS CRM
         </q-toolbar-title>
 
-        <div>Quasar v{{ $q.version }}</div>
+        <div>
+          <q-btn
+            dense
+            round
+            flat
+            icon="exit_to_app"
+            color="white"
+            @click="logout"
+          >
+            <q-tooltip>Logout</q-tooltip>
+          </q-btn>
+          </div>
       </q-toolbar>
     </q-header>
 
@@ -28,7 +39,7 @@
         <q-item-label
           header
         >
-          Essential Links
+          Menu Options
         </q-item-label>
 
         <EssentialLink
@@ -47,50 +58,76 @@
 
 <script setup lang="ts">
 import { ref } from 'vue';
+import { useRouter } from 'vue-router';
+import { supabase } from '../boot/supabase';
+import { useQuasar } from 'quasar';
+
 import EssentialLink, { type EssentialLinkProps } from 'components/EssentialLink.vue';
+
+
+const router = useRouter()
+const $q = useQuasar()
+
+async function logout () {
+  const { error } = await supabase.auth.signOut()
+
+  if (error) {
+    $q.notify({
+      type: 'negative',
+      message: 'Logout failed. Please try again.',
+    })
+    return
+  }
+
+  // Optional: clear any app‑level UI state here (Pinia, refs, etc.)
+
+  // Replace history so back‑button can’t return to protected pages
+  await router.replace('/login')
+}
+
 
 const linksList: EssentialLinkProps[] = [
   {
-    title: 'Docs',
-    caption: 'quasar.dev',
-    icon: 'school',
-    link: 'https://quasar.dev'
+    title: 'Dashboard',
+    caption: 'Manage customer leads and interactions',
+    icon: 'dashboard',
+    link: '/dashboard'
   },
   {
-    title: 'Github',
-    caption: 'github.com/quasarframework',
-    icon: 'code',
-    link: 'https://github.com/quasarframework'
+    title: 'Customers',
+    caption: 'Manage customer information and interactions',
+    icon: 'contacts',
+    link: '/customers'
   },
   {
-    title: 'Discord Chat Channel',
-    caption: 'chat.quasar.dev',
-    icon: 'chat',
-    link: 'https://chat.quasar.dev'
+    title: 'Companies',
+    caption: 'Monitor and manage company profiles',
+    icon: 'business',
+    link: '/companies'
   },
   {
-    title: 'Forum',
-    caption: 'forum.quasar.dev',
-    icon: 'record_voice_over',
-    link: 'https://forum.quasar.dev'
+    title: 'Campaigns',
+    caption: 'Launch and track marketing campaigns',
+    icon: 'campaign',
+    link: '/campaigns'
   },
   {
-    title: 'Twitter',
-    caption: '@quasarframework',
-    icon: 'rss_feed',
-    link: 'https://twitter.quasar.dev'
+    title: 'Pipeline',
+    caption: 'Manage sales funnels',
+    icon: 'view_kanban',
+    link: '/pipeline'
   },
   {
     title: 'Facebook',
-    caption: '@QuasarFramework',
+    caption: '@dendrotonics',
     icon: 'public',
-    link: 'https://facebook.quasar.dev'
+    link: 'https://www.facebook.com/dendrotonics'
   },
   {
-    title: 'Quasar Awesome',
-    caption: 'Community Quasar projects',
+    title: 'YouTube',
+    caption: 'Community Feedback',
     icon: 'favorite',
-    link: 'https://awesome.quasar.dev'
+    link: 'https://www.youtube.com/@ephraimcercado'
   }
 ];
 

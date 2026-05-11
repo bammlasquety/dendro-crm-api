@@ -1,0 +1,6 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Fit-to-viewport defaults */
+html, body, #app { height: 100%; }
