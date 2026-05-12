@@ -13,6 +13,7 @@
     "dev": "quasar dev",
     "dev:ssr": "quasar dev -m ssr",
     "build": "quasar build",
+    "vercel-build": "quasar build",
     "postinstall": "quasar prepare"
   },
   "dependencies": {
