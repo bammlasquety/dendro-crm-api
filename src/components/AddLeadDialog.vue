@@ -818,4 +818,25 @@ async function onSave() {
 
 .summary-item {
   display: flex;
+<<<<<<< HEAD
   flex-dire
+=======
+  flex-direction: column;
+  gap: 2px;
+}
+
+.summary-key {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #90a4ae;
+}
+
+.summary-val {
+  font-size: 13px;
+  color: #37474f;
+  font-weight: 500;
+}
+</style>
+>>>>>>> dd61e66822affd435c62ff574219a347007efb96

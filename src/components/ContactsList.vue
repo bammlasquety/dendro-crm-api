@@ -287,6 +287,7 @@ const $q = useQuasar()
 const lastUpdated = computed(() =>
   props.loading ? '—' : new Date().toLocaleTimeString('en-PH', { hour: '2-digit', minute: '2-digit' })
 )
+<<<<<<< HEAD
 
 // ─── Filter state ─────────────────────────────────────────────────────────────
 
@@ -298,3 +299,290 @@ const filterRegion   = ref('all')
 const filterDateFrom = ref('')
 const filterDateTo   = ref('')
 c
+=======
+
+// ─── Filter state ─────────────────────────────────────────────────────────────
+
+const searchTerm     = ref('')
+const filterActive   = ref<'all' | 'active' | 'inactive'>('all')
+const filterLead     = ref<'all' | LeadStatus>('all')
+const filterWebinar  = ref<'all' | 'yes' | 'no'>('all')
+const filterRegion   = ref('all')
+const filterDateFrom = ref('')
+const filterDateTo   = ref('')
+const sortOrder      = ref<'desc' | 'asc'>('desc')
+
+// ─── Filter options ───────────────────────────────────────────────────────────
+
+const activeOptions = [
+  { label: 'All statuses', value: 'all' },
+  { label: 'Active',       value: 'active' },
+  { label: 'Inactive',     value: 'inactive' },
+]
+
+const leadOptions = [
+  { label: 'All stages',   value: 'all' },
+  { label: 'New',          value: 'new' },
+  { label: 'Qualified',    value: 'qualified' },
+  { label: 'Contacted',    value: 'contacted' },
+  { label: 'Proposal',     value: 'proposal' },
+  { label: 'Negotiation',  value: 'negotiation' },
+  { label: 'Closed Won',   value: 'closed_won' },
+  { label: 'Closed Lost',  value: 'closed_lost' },
+  { label: 'Partner',      value: 'partner' },
+]
+
+const webinarOptions = [
+  { label: 'All',      value: 'all' },
+  { label: 'Attended', value: 'yes' },
+  { label: 'Not yet',  value: 'no' },
+]
+
+const regionOptions = computed(() => {
+  const regions = Array.from(new Set(props.contacts.map(r => r.region).filter(Boolean))) as string[]
+  return [{ label: 'All regions', value: 'all' }, ...regions.sort().map(r => ({ label: r, value: r }))]
+})
+
+// ─── KPI chips ────────────────────────────────────────────────────────────────
+
+const kpiChips = computed(() => {
+  const all      = props.contacts
+  const active   = all.filter(r => r.status === 'active').length
+  const newLeads = all.filter(r => r.leadStatus === 'new').length
+  const attended = all.filter(r => r.webinarAttended).length
+  return [
+    { key: 'total',   label: 'Total',            value: all.length, activeColor: 'grey-7',   active: !hasActiveFilters.value,           onClick: () => clearFilters() },
+    { key: 'active',  label: 'Active',            value: active,     activeColor: 'positive', active: filterActive.value === 'active',   onClick: () => { filterActive.value  = filterActive.value  === 'active' ? 'all' : 'active' } },
+    { key: 'new',     label: 'New leads',         value: newLeads,   activeColor: 'primary',  active: filterLead.value   === 'new',      onClick: () => { filterLead.value    = filterLead.value    === 'new'    ? 'all' : 'new' } },
+    { key: 'webinar', label: 'Attended webinar',  value: attended,   activeColor: 'teal',     active: filterWebinar.value === 'yes',     onClick: () => { filterWebinar.value = filterWebinar.value === 'yes'   ? 'all' : 'yes' } },
+  ]
+})
+
+// ─── Active filter chips ──────────────────────────────────────────────────────
+
+const activeFilterChips = computed(() => {
+  const chips: { key: string; label: string; icon: string; clear: () => void }[] = []
+  if (searchTerm.value.trim())
+    chips.push({ key: 'search', label: `"${searchTerm.value.trim()}"`, icon: 'search', clear: () => { searchTerm.value = '' } })
+  if (filterActive.value !== 'all')
+    chips.push({ key: 'status', label: filterActive.value, icon: 'circle', clear: () => { filterActive.value = 'all' } })
+  if (filterLead.value !== 'all') {
+    const stage = filterLead.value
+    chips.push({ key: 'lead', label: prettyLeadStatus(stage), icon: 'trending_up', clear: () => { filterLead.value = 'all' } })
+  }
+  if (filterWebinar.value !== 'all')
+    chips.push({ key: 'webinar', label: filterWebinar.value === 'yes' ? 'Webinar attended' : 'Not attended', icon: 'groups', clear: () => { filterWebinar.value = 'all' } })
+  if (filterRegion.value !== 'all')
+    chips.push({ key: 'region', label: filterRegion.value, icon: 'place', clear: () => { filterRegion.value = 'all' } })
+  if (filterDateFrom.value)
+    chips.push({ key: 'from', label: `From ${formatDate(filterDateFrom.value)}`, icon: 'calendar_today', clear: () => { filterDateFrom.value = '' } })
+  if (filterDateTo.value)
+    chips.push({ key: 'to', label: `To ${formatDate(filterDateTo.value)}`, icon: 'calendar_today', clear: () => { filterDateTo.value = '' } })
+  return chips
+})
+
+// ─── Derived rows ─────────────────────────────────────────────────────────────
+
+const rows = computed(() => props.contacts)
+
+const hasActiveFilters = computed(() =>
+  searchTerm.value.trim() !== '' ||
+  filterActive.value !== 'all' ||
+  filterLead.value !== 'all' ||
+  filterWebinar.value !== 'all' ||
+  filterRegion.value !== 'all' ||
+  filterDateFrom.value !== '' ||
+  filterDateTo.value !== ''
+)
+
+const filteredRows = computed(() => {
+  const term     = searchTerm.value.trim().toLowerCase()
+  const dateFrom = filterDateFrom.value ? new Date(filterDateFrom.value).getTime() : null
+  const dateTo   = filterDateTo.value ? new Date(filterDateTo.value + 'T23:59:59').getTime() : null
+
+  const filtered = rows.value.filter(r => {
+    if (term) {
+      const hit = r.name.toLowerCase().includes(term) || r.email.toLowerCase().includes(term) ||
+        (r.companyName?.toLowerCase().includes(term) ?? false) ||
+        (r.jobTitle?.toLowerCase().includes(term) ?? false) ||
+        (r.farmLocation?.toLowerCase().includes(term) ?? false) ||
+        (r.region?.toLowerCase().includes(term) ?? false)
+      if (!hit) return false
+    }
+    if (filterActive.value !== 'all' && r.status !== filterActive.value) return false
+    if (filterLead.value !== 'all' && r.leadStatus !== filterLead.value) return false
+    if (filterRegion.value !== 'all' && r.region !== filterRegion.value) return false
+    if (filterWebinar.value === 'yes' && !r.webinarAttended) return false
+    if (filterWebinar.value === 'no' && r.webinarAttended) return false
+    if (r.createdAt) {
+      const ts = new Date(r.createdAt).getTime()
+      if (dateFrom !== null && ts < dateFrom) return false
+      if (dateTo   !== null && ts > dateTo)   return false
+    }
+    return true
+  })
+
+  return filtered.sort((a, b) => {
+    const ta = new Date(a.createdAt).getTime()
+    const tb = new Date(b.createdAt).getTime()
+    return sortOrder.value === 'desc' ? tb - ta : ta - tb
+  })
+})
+
+function clearFilters() {
+  searchTerm.value = ''; filterActive.value = 'all'; filterLead.value = 'all'
+  filterWebinar.value = 'all'; filterRegion.value = 'all'
+  filterDateFrom.value = ''; filterDateTo.value = ''; sortOrder.value = 'desc'
+}
+
+// ─── Table columns ────────────────────────────────────────────────────────────
+
+const columns: QTableColumn<ContactRow>[] = [
+  { name: 'name',            label: 'Name',       field: 'name',            sortable: true,  align: 'left',   style: 'min-width:180px' },
+  { name: 'companyName',     label: 'Company',    field: 'companyName',     sortable: true,  align: 'left',   style: 'min-width:140px' },
+  { name: 'email',           label: 'Email',      field: 'email',           sortable: true,  align: 'left',   style: 'min-width:180px' },
+  { name: 'region',          label: 'Region',     field: 'region',          sortable: true,  align: 'left',   style: 'min-width:100px' },
+  { name: 'leadStatus',      label: 'Stage',      field: 'leadStatus',      sortable: true,  align: 'left',   style: 'min-width:120px' },
+  { name: 'webinarAttended', label: 'Webinar',    field: 'webinarAttended', sortable: false, align: 'center', style: 'width:80px' },
+  { name: 'newsletterOptIn', label: 'Newsletter', field: 'newsletterOptIn', sortable: false, align: 'center', style: 'width:90px' },
+  { name: 'label',           label: 'Label',      field: 'label',           sortable: false, align: 'left',   style: 'min-width:80px' },
+  { name: 'createdAt',       label: 'Created',    field: 'createdAt',       sortable: true,  align: 'left',   style: 'min-width:100px' },
+  { name: 'activeToggle',    label: 'Active',     field: 'status',          sortable: false, align: 'center', style: 'width:70px' },
+  { name: 'actions',         label: '',           field: () => '',          sortable: false, align: 'right',  style: 'width:80px' },
+]
+
+const visibleColumns = computed(() => {
+  if ($q.screen.lt.md) return ['name', 'leadStatus', 'activeToggle', 'actions']
+  if ($q.screen.lt.lg) return ['name', 'email', 'region', 'leadStatus', 'createdAt', 'activeToggle', 'actions']
+  return columns.map(c => c.name)
+})
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function initials(name: string): string {
+  const parts = name.trim().split(/\s+/)
+  return parts.length === 1
+    ? (parts[0]?.[0] ?? '?').toUpperCase()
+    : ((parts[0]?.[0] ?? '') + (parts[parts.length - 1]?.[0] ?? '')).toUpperCase()
+}
+
+const AVATAR_COLORS = ['teal', 'indigo', 'deep-orange', 'purple', 'blue', 'brown', 'cyan-8', 'green-8']
+function avatarColor(name: string): string {
+  let hash = 0
+  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash)
+  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length] ?? 'teal'
+}
+
+function prettyLeadStatus(s: LeadStatus): string {
+  const map: Record<LeadStatus, string> = {
+    new: 'New', qualified: 'Qualified', contacted: 'Contacted', proposal: 'Proposal',
+    negotiation: 'Negotiation', closed_won: 'Closed Won', closed_lost: 'Closed Lost', partner: 'Partner',
+  }
+  return map[s] ?? s
+}
+
+// Accepts string so it can be called from templates without `as` assertions
+function stageColor(s: string): string {
+  const map: Record<string, string> = {
+    new: 'blue-grey', qualified: 'primary', contacted: 'teal', proposal: 'indigo',
+    negotiation: 'orange', closed_won: 'positive', closed_lost: 'negative', partner: 'purple',
+  }
+  return map[s] ?? 'grey'
+}
+
+function labelKey(label: string): string {
+  const l = label.toLowerCase()
+  if (l.includes('hot'))  return 'hot'
+  if (l.includes('warm')) return 'warm'
+  if (l.includes('cold')) return 'cold'
+  return 'default'
+}
+
+function formatDate(iso: string): string {
+  if (!iso) return '—'
+  const d = new Date(iso)
+  const diffDays = Math.floor((Date.now() - d.getTime()) / 86400000)
+  if (diffDays === 0) return 'Today'
+  if (diffDays === 1) return 'Yesterday'
+  if (diffDays < 7)   return `${diffDays}d ago`
+  return d.toLocaleDateString('en-PH', { year: 'numeric', month: 'short', day: 'numeric' })
+}
+
+// ─── Emitters & handlers ──────────────────────────────────────────────────────
+
+// Named handler avoids `row as ContactRow` type assertion in template
+function onRowClick(_evt: Event, row: ContactRow) { emit('select', row) }
+
+function emitSelect(row: ContactRow) { emit('select', row) }
+function emitAdd()                   { emit('add') }
+function emitRefresh()               { emit('refresh') }
+function emitImport()                { emit('import') }
+function emitStatusUpdate(id: string, status: 'active' | 'inactive') {
+  emit('update-status', { id, status })
+}
+
+function confirmDelete(row: ContactRow) {
+  $q.dialog({
+    title: 'Delete Lead',
+    message: `Permanently delete <strong>${row.name}</strong>? This cannot be undone.`,
+    html: true,
+    cancel: { flat: true, label: 'Cancel' },
+    ok: { unelevated: true, color: 'negative', label: 'Delete' },
+    persistent: true,
+  }).onOk(() => emit('delete', row.id))
+}
+</script>
+
+<style scoped lang="scss">
+.leads-page { background: #f4f6f8; min-height: 100%; }
+.leads-header { background: #fff; border-bottom: 1px solid #e8eaed; }
+.lh-tight { line-height: 1.2; }
+
+.kpi-chip { font-size: 13px; padding: 6px 12px; border-radius: 20px; transition: all .15s; border: 1px solid transparent; &:hover { opacity: .85; } }
+.kpi-value { font-weight: 700; font-size: 15px; }
+.kpi-label { font-size: 12px; opacity: .85; }
+
+.filter-bar { background: #f4f6f8; border-bottom: 1px solid #e8eaed; }
+.filter-active :deep(.q-field__control) { border-color: #26a69a !important; background: #e0f2f1 !important; }
+.sort-toggle { border: 1px solid #e0e0e0; border-radius: 6px; height: 40px; }
+.result-count { font-size: 12px; white-space: nowrap; }
+.filter-chip { font-size: 11px; height: 24px; }
+
+.leads-table {
+  :deep(thead tr th) { position: sticky; top: 0; z-index: 1; background: #fafafa; border-bottom: 2px solid #e8eaed; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: #78909c; white-space: nowrap; }
+  :deep(tbody tr) { cursor: pointer; transition: background .1s; &:hover { background: #f0f9f8 !important; } }
+  :deep(tbody td) { padding: 10px 12px; font-size: 13px; color: #37474f; border-bottom: 1px solid #f0f0f0; }
+}
+
+.name-cell { min-width: 180px; }
+.avatar-sm { flex-shrink: 0; font-size: 11px; }
+.email-link { display: block; color: #0077cc; text-decoration: none; font-size: 13px; &:hover { text-decoration: underline; } }
+.region-tag { display: inline-block; padding: 2px 8px; border-radius: 4px; background: #eceff1; color: #546e7a; font-size: 11px; font-weight: 600; white-space: nowrap; }
+
+.lead-chip { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; white-space: nowrap;
+  &--new         { background: #eceff1; color: #546e7a; }
+  &--qualified   { background: #e3f2fd; color: #1565c0; }
+  &--contacted   { background: #e0f2f1; color: #00695c; }
+  &--proposal    { background: #ede7f6; color: #4527a0; }
+  &--negotiation { background: #fff3e0; color: #e65100; }
+  &--closed_won  { background: #e8f5e9; color: #2e7d32; }
+  &--closed_lost { background: #ffebee; color: #c62828; }
+  &--partner     { background: #f3e5f5; color: #6a1b9a; }
+}
+
+.bool-yes { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; background: #e8f5e9; color: #2e7d32; }
+.bool-no  { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; background: #f5f5f5; color: #9e9e9e; }
+
+.label-tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; text-transform: capitalize;
+  &--hot     { background: #ffebee; color: #c62828; }
+  &--warm    { background: #fff3e0; color: #e65100; }
+  &--cold    { background: #e3f2fd; color: #1565c0; }
+  &--default { background: #f5f5f5; color: #616161; }
+}
+
+.status-bar { background: #fff; border-top: 1px solid #e8eaed; min-height: 36px; }
+
+.fade-enter-active, .fade-leave-active { transition: opacity .2s; }
+.fade-enter-from, .fade-leave-to { opacity: 0; }
+</style>
+>>>>>>> dd61e66822affd435c62ff574219a347007efb96

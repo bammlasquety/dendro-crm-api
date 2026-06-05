@@ -133,4 +133,38 @@ function onImportContacts() {
   $q.notify({ type: 'info', message: 'Import Contacts — coming soon.' });
 }
 
+<<<<<<< HEAD
 async
+=======
+async function onDeleteContact(id: string) {
+  try {
+    await axios.delete(`${API}/${id}`);
+    contacts.value = contacts.value.filter(c => c.id !== id);
+    $q.notify({ type: 'positive', message: 'Contact deleted.' });
+  } catch (err) {
+    console.error('[CustomerLeads] onDeleteContact failed:', err);
+    $q.notify({ type: 'negative', message: 'Failed to delete contact.' });
+  }
+}
+
+async function onUpdateStatus(payload: { id: string; status: 'active' | 'inactive' }) {
+  try {
+    await axios.patch(`${API}/${payload.id}`, { status: payload.status });
+    const idx = contacts.value.findIndex(c => c.id === payload.id);
+    if (idx !== -1) contacts.value[idx] = { ...contacts.value[idx]!, status: payload.status };
+    $q.notify({ type: 'positive', message: 'Status updated.' });
+  } catch (err) {
+    console.error('[CustomerLeads] onUpdateStatus failed:', err);
+    $q.notify({ type: 'negative', message: 'Failed to update status.' });
+  }
+}
+
+function onContactSaved(updated: ContactRow) {
+  const idx = contacts.value.findIndex(c => c.id === updated.id);
+  if (idx !== -1) contacts.value[idx] = updated;
+  $q.notify({ type: 'positive', message: `${updated.name} updated successfully.` });
+}
+
+onMounted(loadContacts);
+</script>
+>>>>>>> dd61e66822affd435c62ff574219a347007efb96

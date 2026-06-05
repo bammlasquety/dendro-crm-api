@@ -87,8 +87,20 @@ export default defineConfig((/* ctx */) => {
 
     // Full list of options: https://v2.quasar.dev/quasar-cli-vite/quasar-config-file#devserver
     devServer: {
+<<<<<<< HEAD
       port: 3000,
       open: false, // API server — no browser needed
+=======
+      // https: true,
+      open: true, // opens browser window automatically
+      proxy: {
+        // Forward /api/* to the dendro-crm-api SSR server
+        '/api': {
+          target: 'http://localhost:3000',
+          changeOrigin: true,
+        },
+      },
+>>>>>>> dd61e66822affd435c62ff574219a347007efb96
     },
 
     // https://v2.quasar.dev/quasar-cli-vite/quasar-config-file#framework
@@ -106,7 +118,7 @@ export default defineConfig((/* ctx */) => {
       // directives: [],
 
       // Quasar plugins
-      plugins: [],
+      plugins: ['Notify', 'Dialog'],
     },
 
     // animations: 'all', // --- includes all animations
@@ -128,10 +140,14 @@ export default defineConfig((/* ctx */) => {
 
     // https://v2.quasar.dev/quasar-cli-vite/developing-ssr/configuring-ssr
     ssr: {
-      prodPort: 3000, // The default port that the production server should use
+      //prodPort: 3000, // The default port that the production server should use
       // (gets superseded if process.env.PORT is specified at runtime)
 
+<<<<<<< HEAD
       middlewares: ['customerLeads', 'dashboard'], // add your own SSR middlewares to process requests
+=======
+      //middlewares: ['customerLeads'], // add your own SSR middlewares to process requests
+>>>>>>> dd61e66822affd435c62ff574219a347007efb96
 
       // extendPackageJson (json) {},
       // extendSSRWebserverConf (esbuildConf) {},
