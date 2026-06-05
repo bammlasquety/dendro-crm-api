@@ -1,13 +1,3 @@
 {
-  "version": 2,
-  "functions": {
-    "api/**/*.ts": {
-      "runtime": "@vercel/node"
-    }
-  },
-  "rewrites": [
-    { "source": "/api/customer-leads/:id", "destination": "/api/customer-leads/[id]" },
-    { "source": "/api/dashboard/stats", "destination": "/api/dashboard/stats" },
-    { "source": "/api/dashboard/recent-leads", "destination": "/api/dashboard/recent-leads" }
-  ]
+  "version": 2
 }
