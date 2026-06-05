@@ -1,11 +1,13 @@
 {
   "version": 2,
-  "builds": [
-    {
-      "src": "package.json",
-      "use": "@vercel/static-build",
-      "config": { "distDir": "dist/spa" }
+  "functions": {
+    "api/**/*.ts": {
+      "runtime": "@vercel/node"
     }
-  ],
-  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+  },
+  "rewrites": [
+    { "source": "/api/customer-leads/:id", "destination": "/api/customer-leads/[id]" },
+    { "source": "/api/dashboard/stats", "destination": "/api/dashboard/stats" },
+    { "source": "/api/dashboard/recent-leads", "destination": "/api/dashboard/recent-leads" }
+  ]
 }

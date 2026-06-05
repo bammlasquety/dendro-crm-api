@@ -1,3 +1,13 @@
 {
-  "extends": "./.quasar/tsconfig.json"
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "outDir": "dist"
+  },
+  "include": ["api/**/*.ts", "dev-server.ts"],
+  "exclude": ["node_modules", "dist"]
 }
