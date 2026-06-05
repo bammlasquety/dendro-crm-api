@@ -3,7 +3,7 @@
  */
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { getSupabase } from '../_lib/supabase.js';
+import { getSupabase } from '../_lib/supabase';
 
 const STAGES = [
   'new', 'qualified', 'contacted', 'proposal',

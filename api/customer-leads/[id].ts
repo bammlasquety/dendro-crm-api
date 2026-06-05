@@ -4,7 +4,7 @@
  */
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { getSupabase } from '../_lib/supabase.js';
+import { getSupabase } from '../_lib/supabase';
 
 const PATCHABLE_COLUMNS = [
   'name', 'email', 'contact_number', 'job_title', 'farm_location', 'region',

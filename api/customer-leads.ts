@@ -4,7 +4,7 @@
  */
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { getSupabase } from './_lib/supabase.js';
+import { getSupabase } from './_lib/supabase';
 
 const VALID_STATUSES = ['active', 'inactive'] as const;
 const VALID_LEAD_STATUSES = [

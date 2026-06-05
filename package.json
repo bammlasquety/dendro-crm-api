@@ -3,7 +3,6 @@
   "version": "0.0.1",
   "description": "Vercel serverless API for Dendrotonics CRM",
   "author": "Bamm Lasquety <bamm_lasquety@yahoo.com>",
-  "type": "module",
   "private": true,
   "scripts": {
     "dev": "tsx dev-server.ts"
@@ -16,7 +15,7 @@
   "devDependencies": {
     "@types/express": "^5.0.6",
     "@types/node": "^22.19.11",
-    "@vercel/node": "^5.0.0",
+    "@vercel/node": "^3.2.0",
     "tsx": "^4.19.2",
     "typescript": "^5.9.3"
   },
