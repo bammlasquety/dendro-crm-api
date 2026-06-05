@@ -23,7 +23,8 @@ export interface CustomerLeadRow {
     | 'proposal'
     | 'negotiation'
     | 'closed_won'
-    | 'closed_lost';
+    | 'closed_lost'
+    | 'partner';
   label: string | null;
   webinar_attended: boolean;
   webinar_date_attended: string | null;
@@ -31,6 +32,7 @@ export interface CustomerLeadRow {
   optin_webinar: boolean | null;
   potential_deal_value_php: number | null;
   notes: string | null;
+  farm_notes: string | null;
   unsubscribed_at: string | null;
   created_at: string;
   updated_at: string;

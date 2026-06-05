@@ -6,6 +6,7 @@
 import { ssrMiddleware } from 'quasar/wrappers';
 import { createClient } from '@supabase/supabase-js';
 import { config } from 'dotenv';
+import express from 'express';
 
 // Load .env explicitly — process.env is not populated in SSR middleware
 // by Quasar's build pipeline
@@ -29,12 +30,31 @@ function getSupabase() {
 
 const supabase = getSupabase();
 
+// Allowed values from the DB check constraints
+const VALID_STATUSES = ['active', 'inactive'] as const;
+const VALID_LEAD_STATUSES = [
+  'new', 'qualified', 'contacted', 'proposal',
+  'negotiation', 'closed_won', 'closed_lost', 'partner',
+] as const;
+
+// Writable columns — whitelist prevents injecting arbitrary fields into Supabase
+const PATCHABLE_COLUMNS = [
+  'name', 'email', 'contact_number', 'job_title', 'farm_location', 'region',
+  'status', 'lead_status', 'label', 'webinar_attended', 'webinar_date_attended',
+  'optin_newsletter', 'optin_webinar', 'potential_deal_value_php', 'notes', 'farm_notes',
+] as const;
+
+type PatchableColumn = typeof PATCHABLE_COLUMNS[number];
+
 export default ssrMiddleware(({ app }) => {
+  // Parse JSON bodies for POST/PATCH requests
+  app.use('/api/customer-leads', express.json());
+
   // GET /api/customer-leads
   app.get('/api/customer-leads', async (req, res) => {
     try {
       const page = Math.max(1, Number(req.query['page']) || 1);
-      const limit = Math.min(100, Math.max(1, Number(req.query['limit']) || 25));
+      const limit = Math.min(1000, Math.max(1, Number(req.query['limit']) || 25));
       const from = (page - 1) * limit;
       const to = from + limit - 1;
 
@@ -50,8 +70,10 @@ export default ssrMiddleware(({ app }) => {
         .order('created_at', { ascending: false })
         .range(from, to);
 
-      if (status) query = query.eq('status', status);
-      if (leadStatus) query = query.eq('lead_status', leadStatus);
+      if (status && (VALID_STATUSES as readonly string[]).includes(status))
+        query = query.eq('status', status);
+      if (leadStatus && (VALID_LEAD_STATUSES as readonly string[]).includes(leadStatus))
+        query = query.eq('lead_status', leadStatus);
       if (region) query = query.ilike('region', `%${region}%`);
       if (search) query = query.or(`name.ilike.%${search}%,email.ilike.%${search}%`);
 
@@ -97,6 +119,51 @@ export default ssrMiddleware(({ app }) => {
     }
   });
 
+  // POST /api/customer-leads
+  app.post('/api/customer-leads', async (req, res) => {
+    try {
+      const body = req.body as Record<string, unknown>;
+
+      // Required fields
+      const name  = typeof body['name']  === 'string' ? body['name'].trim()  : '';
+      const email = typeof body['email'] === 'string' ? body['email'].trim() : '';
+
+      if (!name)  { res.status(400).json({ success: false, error: 'name is required.' });  return; }
+      if (!email) { res.status(400).json({ success: false, error: 'email is required.' }); return; }
+
+      // Build insert payload — only known columns, same whitelist as PATCH
+      const insert: Partial<Record<PatchableColumn, unknown>> & { name: string; email: string } = {
+        name,
+        email,
+      };
+
+      for (const col of PATCHABLE_COLUMNS) {
+        if (col === 'name' || col === 'email') continue;
+        if (col in body) insert[col] = body[col];
+      }
+
+      const { data, error } = await supabase
+        .from('customer_leads')
+        .insert(insert)
+        .select()
+        .maybeSingle();
+
+      if (error) {
+        // Unique-email violation
+        if (error.code === '23505') {
+          res.status(409).json({ success: false, error: 'A lead with that email already exists.' });
+          return;
+        }
+        throw error;
+      }
+
+      res.status(201).json({ success: true, lead: data });
+    } catch (err) {
+      console.error('[POST /api/customer-leads]', err);
+      res.status(500).json({ success: false, error: 'Failed to create customer lead.' });
+    }
+  });
+
   // DELETE /api/customer-leads/:id
   app.delete('/api/customer-leads/:id', async (req, res) => {
     try {
@@ -113,14 +180,30 @@ export default ssrMiddleware(({ app }) => {
   // PATCH /api/customer-leads/:id
   app.patch('/api/customer-leads/:id', async (req, res) => {
     try {
+      // Only allow known writable columns through
+      const body = req.body as Record<string, unknown>;
+      const patch: Partial<Record<PatchableColumn, unknown>> = {};
+      for (const col of PATCHABLE_COLUMNS) {
+        if (col in body) patch[col] = body[col];
+      }
+
+      if (Object.keys(patch).length === 0) {
+        res.status(400).json({ success: false, error: 'No patchable fields provided.' });
+        return;
+      }
+
       const { data, error } = await supabase
         .from('customer_leads')
-        .update(req.body)
+        .update({ ...patch, updated_at: new Date().toISOString() })
         .eq('id', req.params['id'])
         .select()
         .maybeSingle();
 
       if (error) throw error;
+      if (!data) {
+        res.status(404).json({ success: false, error: 'Customer lead not found.' });
+        return;
+      }
       res.json({ success: true, lead: data });
     } catch (err) {
       console.error('[PATCH /api/customer-leads/:id]', err);

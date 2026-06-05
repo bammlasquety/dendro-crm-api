@@ -18,7 +18,7 @@ export default defineConfig((/* ctx */) => {
     boot: ['supabase'],
 
     // https://v2.quasar.dev/quasar-cli-vite/quasar-config-file#css
-    css: ['tailwind.css', 'app.scss'],
+    css: ['app.scss'],
 
     // https://github.com/quasarframework/quasar/tree/dev/extras
     extras: [
@@ -87,8 +87,8 @@ export default defineConfig((/* ctx */) => {
 
     // Full list of options: https://v2.quasar.dev/quasar-cli-vite/quasar-config-file#devserver
     devServer: {
-      // https: true,
-      open: true, // opens browser window automatically
+      port: 3000,
+      open: false, // API server — no browser needed
     },
 
     // https://v2.quasar.dev/quasar-cli-vite/quasar-config-file#framework
@@ -131,7 +131,7 @@ export default defineConfig((/* ctx */) => {
       prodPort: 3000, // The default port that the production server should use
       // (gets superseded if process.env.PORT is specified at runtime)
 
-      middlewares: ['customerLeads'], // add your own SSR middlewares to process requests
+      middlewares: ['customerLeads', 'dashboard'], // add your own SSR middlewares to process requests
 
       // extendPackageJson (json) {},
       // extendSSRWebserverConf (esbuildConf) {},

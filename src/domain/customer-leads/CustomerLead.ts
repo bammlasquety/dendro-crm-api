@@ -14,7 +14,8 @@ export type LeadStatus =
   | 'proposal'
   | 'negotiation'
   | 'closed_won'
-  | 'closed_lost';
+  | 'closed_lost'
+  | 'partner';
 
 export type ContactStatus = 'active' | 'inactive';
 
@@ -26,6 +27,7 @@ export const LEAD_STATUSES: LeadStatus[] = [
   'negotiation',
   'closed_won',
   'closed_lost',
+  'partner',
 ];
 
 export const CONTACT_STATUSES: ContactStatus[] = ['active', 'inactive'];
@@ -51,6 +53,7 @@ export interface CustomerLeadProps {
   optinWebinar: boolean;
   potentialDealValuePhp: number | null;
   notes: string | null;
+  farmNotes: string | null;
   unsubscribedAt: string | null; // ISO timestamp
   createdAt: string;
   updatedAt: string;
@@ -162,6 +165,9 @@ export class CustomerLead {
   }
   get notes(): string | null {
     return this.props.notes;
+  }
+  get farmNotes(): string | null {
+    return this.props.farmNotes;
   }
   get unsubscribedAt(): string | null {
     return this.props.unsubscribedAt;

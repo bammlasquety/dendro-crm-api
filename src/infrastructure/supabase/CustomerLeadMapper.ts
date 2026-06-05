@@ -35,6 +35,7 @@ export const customerLeadMapper = {
       optinWebinar: row.optin_webinar ?? false,
       potentialDealValuePhp: row.potential_deal_value_php,
       notes: row.notes,
+      farmNotes: row.farm_notes,
       unsubscribedAt: row.unsubscribed_at,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
@@ -65,6 +66,7 @@ export const customerLeadMapper = {
     if (partial.potentialDealValuePhp !== undefined)
       patch.potential_deal_value_php = partial.potentialDealValuePhp;
     if (partial.notes !== undefined) patch.notes = partial.notes;
+    if (partial.farmNotes !== undefined) patch.farm_notes = partial.farmNotes;
 
     return patch;
   },
@@ -93,6 +95,7 @@ export const customerLeadMapper = {
       optinWebinar: lead.optinWebinar,
       potentialDealValuePhp: lead.potentialDealValuePhp,
       notes: lead.notes,
+      farmNotes: lead.farmNotes,
       unsubscribedAt: lead.unsubscribedAt,
       createdAt: lead.createdAt,
       updatedAt: lead.updatedAt,
