@@ -8,7 +8,7 @@ import { getSupabase } from './_lib/supabase';
 
 const VALID_STATUSES = ['active', 'inactive'] as const;
 const VALID_LEAD_STATUSES = [
-  'new', 'qualified', 'contacted', 'proposal',
+  'new', 'web', 'joined', 'qualified', 'contacted', 'proposal',
   'negotiation', 'closed_won', 'closed_lost', 'partner',
 ] as const;
 

@@ -6,7 +6,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { getSupabase } from '../_lib/supabase';
 
 const STAGES = [
-  'new', 'qualified', 'contacted', 'proposal',
+  'new', 'web', 'joined', 'qualified', 'contacted', 'proposal',
   'negotiation', 'closed_won', 'closed_lost', 'partner',
 ] as const;
 
