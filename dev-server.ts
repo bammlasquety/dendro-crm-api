@@ -9,6 +9,7 @@ import customerLeadsHandler from './api/customer-leads';
 import customerLeadByIdHandler from './api/customer-leads/[id]';
 import dashboardStatsHandler from './api/dashboard/stats';
 import recentLeadsHandler from './api/dashboard/recent-leads';
+import generateArticleHandler from './api/generate-article';
 
 const app = express();
 app.use(express.json());
@@ -30,6 +31,8 @@ app.all('/api/customer-leads/:id', async (req: Request, res: Response) => {
 
 app.get('/api/dashboard/stats',        mount(dashboardStatsHandler));
 app.get('/api/dashboard/recent-leads', mount(recentLeadsHandler));
+
+app.all('/api/generate-article', mount(generateArticleHandler));
 
 const PORT = Number(process.env['PORT'] ?? 3000);
 app.listen(PORT, () => {
