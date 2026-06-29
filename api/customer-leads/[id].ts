@@ -67,6 +67,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         if (col in body) patch[col] = body[col];
       }
 
+      // When a lead is marked as having attended a webinar, auto-stamp the
+      // attendance date with today if one wasn't explicitly provided.
+      if (patch['webinar_attended'] === true && !patch['webinar_date_attended']) {
+        patch['webinar_date_attended'] = new Date().toISOString().slice(0, 10);
+      }
+
       if (Object.keys(patch).length === 0) {
         res.status(400).json({ success: false, error: 'No patchable fields provided.' });
         return;

@@ -99,6 +99,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         if (col in body) insert[col] = body[col];
       }
 
+      // Auto-stamp attendance date with today when marked attended without a date.
+      if (insert['webinar_attended'] === true && !insert['webinar_date_attended']) {
+        insert['webinar_date_attended'] = new Date().toISOString().slice(0, 10);
+      }
+
       const { data, error } = await supabase
         .from('customer_leads')
         .insert(insert)
