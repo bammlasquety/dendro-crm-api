@@ -6,8 +6,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { getSupabase } from '../_lib/supabase';
 
 const STAGES = [
-  'new', 'web', 'joined', 'qualified', 'contacted', 'proposal',
-  'negotiation', 'closed_won', 'closed_lost', 'partner',
+  'new', 'web', 'joined', 'qualified', 'contacted', 'contract', 'partner',
 ] as const;
 
 const BATCH = 1000;
@@ -85,7 +84,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Step 3: fire all count queries in parallel
     const [
       active, inactive,
-      newThisMonth, newLast30, newLast90,
+      newThisMonth, newLast30, newLast90, newActiveLeads,
       webinarOptIn, webinarAttended, newsletterOptIn,
       ...stageCounts
     ] = await Promise.all([
@@ -94,6 +93,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       headCount(supabase.from('customer_leads').select('*', { count: 'exact', head: true }).gte('created_at', thisMonthStart)),
       headCount(supabase.from('customer_leads').select('*', { count: 'exact', head: true }).gte('created_at', d30)),
       headCount(supabase.from('customer_leads').select('*', { count: 'exact', head: true }).gte('created_at', d90)),
+      // Active leads currently at the "new" stage — the headline "New Leads" figure.
+      headCount(supabase.from('customer_leads').select('*', { count: 'exact', head: true }).eq('status', 'active').eq('lead_status', 'new')),
       headCount(supabase.from('customer_leads').select('*', { count: 'exact', head: true }).eq('optin_webinar', true)),
       headCount(supabase.from('customer_leads').select('*', { count: 'exact', head: true }).eq('webinar_attended', true)),
       headCount(supabase.from('customer_leads').select('*', { count: 'exact', head: true }).eq('optin_newsletter', true)),
@@ -144,6 +145,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         newThisMonth,
         newLast30,
         newLast90,
+        newActiveLeads,
         totalDealValuePhp,
         webinarOptIn,
         webinarAttended,
