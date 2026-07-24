@@ -40,6 +40,7 @@ interface AggRow {
   region: string | null;
   potential_deal_value_php: number | null;
   created_at: string;
+  lead_status: string | null;
 }
 
 function cors(res: VercelResponse) {
@@ -75,7 +76,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       Array.from({ length: pages }, (_, i) =>
         supabase
           .from('customer_leads')
-          .select('region, potential_deal_value_php, created_at')
+          .select('region, potential_deal_value_php, created_at, lead_status')
           .range(i * BATCH, (i + 1) * BATCH - 1)
       )
     );
@@ -101,18 +102,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       ...STAGES.map(s =>
         headCount(supabase.from('customer_leads').select('*', { count: 'exact', head: true }).eq('lead_status', s))
       ),
-      ...months.map(({ start, end }) =>
-        headCount(
-          supabase.from('customer_leads')
-            .select('*', { count: 'exact', head: true })
-            .gte('created_at', start)
-            .lt('created_at', end)
-        )
-      ),
     ] as const);
 
     const stageCountArr  = (stageCounts as number[]).slice(0, STAGES.length);
-    const monthCountArr  = (stageCounts as number[]).slice(STAGES.length);
 
     // Aggregations from batch rows
     const totalDealValuePhp = aggRows.reduce((sum, r) => sum + (r.potential_deal_value_php ?? 0), 0);
@@ -130,11 +122,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       .slice(0, 8)
       .map(([region, count]) => ({ region, count }));
 
-    const monthlyGrowth = months.map(({ ym, label }, i) => ({
-      month: ym,
-      label,
-      count: monthCountArr[i] ?? 0,
-    }));
+    // Per-stage counts per month (stacked-bar data), computed from the batch rows.
+    const monthAgg: Record<string, Record<string, number>> = {};
+    for (const r of aggRows) {
+      if (!r.created_at) continue;
+      const d = new Date(r.created_at);
+      const ym = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
+      const stage = r.lead_status ?? 'new';
+      const bucket = (monthAgg[ym] ??= {});
+      bucket[stage] = (bucket[stage] ?? 0) + 1;
+    }
+    const monthlyGrowth = months.map(({ ym, label }) => {
+      const src = monthAgg[ym] ?? {};
+      const byStage: Record<string, number> = {};
+      let total = 0;
+      for (const s of STAGES) {
+        const c = src[s] ?? 0;
+        byStage[s] = c;
+        total += c;
+      }
+      return { month: ym, label, total, byStage };
+    });
 
     res.status(200).json({
       success: true,
