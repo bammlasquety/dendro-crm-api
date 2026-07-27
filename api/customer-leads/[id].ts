@@ -5,6 +5,8 @@
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { getSupabase } from '../_lib/supabase';
+import { requireCrmStaff } from '../_lib/auth';
+import { cors, stripSecrets } from '../_lib/http';
 
 const PATCHABLE_COLUMNS = [
   'name', 'email', 'contact_number', 'job_title', 'farm_location', 'region',
@@ -14,19 +16,17 @@ const PATCHABLE_COLUMNS = [
 
 type PatchableColumn = (typeof PATCHABLE_COLUMNS)[number];
 
-function cors(res: VercelResponse) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,PATCH,DELETE,OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-}
-
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  cors(res);
+  cors(res, 'GET,PATCH,DELETE', req.headers.origin);
 
   if (req.method === 'OPTIONS') {
     res.status(204).end();
     return;
   }
+
+  // Reads, edits and deletes of a lead record — all staff-only.
+  const staff = await requireCrmStaff(req, res);
+  if (!staff) return;
 
   const id = req.query['id'] as string;
   if (!id) {
@@ -50,7 +50,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         res.status(404).json({ success: false, error: 'Customer lead not found.' });
         return;
       }
-      res.status(200).json({ success: true, lead: data });
+      res.status(200).json({ success: true, lead: stripSecrets(data) });
     } catch (err) {
       console.error('[GET /api/customer-leads/:id]', err);
       res.status(500).json({ success: false, error: 'Failed to fetch customer lead.' });
@@ -90,7 +90,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         res.status(404).json({ success: false, error: 'Customer lead not found.' });
         return;
       }
-      res.status(200).json({ success: true, lead: data });
+      res.status(200).json({ success: true, lead: stripSecrets(data) });
     } catch (err) {
       console.error('[PATCH /api/customer-leads/:id]', err);
       res.status(500).json({ success: false, error: 'Failed to update customer lead.' });

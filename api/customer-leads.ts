@@ -5,6 +5,8 @@
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { getSupabase } from './_lib/supabase';
+import { requireCrmStaff } from './_lib/auth';
+import { cors, stripSecrets } from './_lib/http';
 
 const VALID_STATUSES = ['active', 'inactive'] as const;
 const VALID_LEAD_STATUSES = [
@@ -20,19 +22,17 @@ const PATCHABLE_COLUMNS = [
 
 type PatchableColumn = (typeof PATCHABLE_COLUMNS)[number];
 
-function cors(res: VercelResponse) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-}
-
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  cors(res);
+  cors(res, 'GET,POST', req.headers.origin);
 
   if (req.method === 'OPTIONS') {
     res.status(204).end();
     return;
   }
+
+  // Every path below reads or writes personal data. Nothing proceeds anonymously.
+  const staff = await requireCrmStaff(req, res);
+  if (!staff) return;
 
   const supabase = getSupabase();
 
@@ -67,7 +67,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       res.status(200).json({
         success: true,
-        leads: data ?? [],
+        leads: stripSecrets(data ?? []),
         pagination: {
           total: count ?? 0,
           page,
@@ -118,7 +118,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         throw error;
       }
 
-      res.status(201).json({ success: true, lead: data });
+      res.status(201).json({ success: true, lead: stripSecrets(data) });
     } catch (err) {
       console.error('[POST /api/customer-leads]', err);
       res.status(500).json({ success: false, error: 'Failed to create customer lead.' });

@@ -30,8 +30,15 @@ app.all('/api/customer-leads/:id', async (req: Request, res: Response) => {
   await customerLeadByIdHandler(req, res);
 });
 
-app.get('/api/dashboard/stats',        mount(dashboardStatsHandler));
-app.get('/api/dashboard/recent-leads', mount(recentLeadsHandler));
+// app.all, not app.get: the CRM sends a Bearer token, which makes these
+// requests non-simple, so the browser preflights them. Registered as .get,
+// Express answers OPTIONS itself with "200 Allow: GET, HEAD" and none of the
+// CORS headers — the preflight fails and the dashboard silently shows nothing.
+// Only visible when the CRM talks to this server cross-origin (i.e. with
+// VITE_API_BASE_URL=http://localhost:3000 rather than via the Vite proxy).
+// The handlers reject non-GET methods themselves.
+app.all('/api/dashboard/stats',        mount(dashboardStatsHandler));
+app.all('/api/dashboard/recent-leads', mount(recentLeadsHandler));
 
 app.all('/api/generate-article', mount(generateArticleHandler));
 app.all('/api/revalidate-blog',  mount(revalidateBlogHandler));

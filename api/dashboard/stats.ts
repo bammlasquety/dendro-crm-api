@@ -4,6 +4,8 @@
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { getSupabase } from '../_lib/supabase';
+import { requireCrmStaff } from '../_lib/auth';
+import { cors } from '../_lib/http';
 
 const STAGES = [
   'new', 'web', 'joined', 'qualified', 'contacted', 'contract', 'partner',
@@ -43,17 +45,15 @@ interface AggRow {
   lead_status: string | null;
 }
 
-function cors(res: VercelResponse) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-}
-
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  cors(res);
+  cors(res, 'GET', req.headers.origin);
 
   if (req.method === 'OPTIONS') { res.status(204).end(); return; }
   if (req.method !== 'GET') { res.status(405).json({ success: false, error: 'Method not allowed.' }); return; }
+
+  // Aggregates only, but they still describe the book of business. Staff-only.
+  const staff = await requireCrmStaff(req, res);
+  if (!staff) return;
 
   try {
     const supabase = getSupabase();

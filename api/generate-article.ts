@@ -14,7 +14,8 @@
  */
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { getSupabase } from './_lib/supabase';
+import { requireCrmStaff } from './_lib/auth';
+import { cors } from './_lib/http';
 
 type Mode = 'draft' | 'improve' | 'continue' | 'metadata';
 
@@ -34,12 +35,6 @@ reforestation, and AI-driven forestry. Tone: confident, inspiring, credible, pro
 warm. Audience: investors, landowners, and environmental advocates. Write in clean Markdown
 using ## subheadings, short paragraphs, and the occasional blockquote. Do NOT include YAML
 frontmatter or an H1 title — only the article body.`;
-
-function cors(res: VercelResponse) {
-  res.setHeader('Access-Control-Allow-Origin', process.env['ALLOWED_ORIGIN'] || '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST,OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-}
 
 function buildMessages(b: Body): { role: 'system' | 'user'; content: string }[] {
   const ctx = b.title ? `\n\nCurrent title: "${b.title}".` : '';
@@ -91,20 +86,8 @@ function buildMessages(b: Body): { role: 'system' | 'user'; content: string }[] 
   }
 }
 
-async function isAuthed(authHeader: string | undefined): Promise<boolean> {
-  const token = (authHeader ?? '').replace(/^Bearer\s+/i, '');
-  if (!token) return false;
-  try {
-    const { data, error } = await getSupabase().auth.getUser(token);
-    return !error && !!data.user;
-  } catch (err) {
-    console.error('[generate-article] auth check failed:', err);
-    return false;
-  }
-}
-
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  cors(res);
+  cors(res, 'POST', req.headers.origin);
 
   if (req.method === 'OPTIONS') {
     res.status(204).end();
@@ -115,14 +98,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return;
   }
 
+  // Only CRM staff may spend OpenAI tokens. The previous check accepted any
+  // valid Supabase user, and the Partner Hub shares this auth server — so every
+  // onboarded partner could bill you for generations.
+  //
+  // Authenticate before touching configuration: the old order let an anonymous
+  // caller learn whether OPENAI_API_KEY was set.
+  const staff = await requireCrmStaff(req, res);
+  if (!staff) return;
+
   if (!process.env['OPENAI_API_KEY']) {
     res.status(500).json({ success: false, error: 'OPENAI_API_KEY not configured.' });
-    return;
-  }
-
-  // Only signed-in CRM users may spend OpenAI tokens.
-  if (!(await isAuthed(req.headers.authorization))) {
-    res.status(401).json({ success: false, error: 'Unauthorized.' });
     return;
   }
 

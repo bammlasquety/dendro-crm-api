@@ -15,28 +15,11 @@
  */
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { getSupabase } from './_lib/supabase';
-
-function cors(res: VercelResponse) {
-  res.setHeader('Access-Control-Allow-Origin', process.env['ALLOWED_ORIGIN'] || '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST,OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-}
-
-async function isAuthed(authHeader: string | undefined): Promise<boolean> {
-  const token = (authHeader ?? '').replace(/^Bearer\s+/i, '');
-  if (!token) return false;
-  try {
-    const { data, error } = await getSupabase().auth.getUser(token);
-    return !error && !!data.user;
-  } catch (err) {
-    console.error('[revalidate-blog] auth check failed:', err);
-    return false;
-  }
-}
+import { requireCrmStaff } from './_lib/auth';
+import { cors } from './_lib/http';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  cors(res);
+  cors(res, 'POST', req.headers.origin);
 
   if (req.method === 'OPTIONS') {
     res.status(204).end();
@@ -47,10 +30,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return;
   }
 
-  if (!(await isAuthed(req.headers.authorization))) {
-    res.status(401).json({ success: false, error: 'Unauthorized.' });
-    return;
-  }
+  // Holds the shared REVALIDATE_SECRET, so this is a proxy to a privileged
+  // upstream. Same reasoning as generate-article: staff, not merely signed in.
+  const staff = await requireCrmStaff(req, res);
+  if (!staff) return;
 
   const target = process.env['DENDROV4_REVALIDATE_URL'];
   const secret = process.env['REVALIDATE_SECRET'];
